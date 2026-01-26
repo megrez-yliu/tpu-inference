@@ -19,8 +19,9 @@ from absl.testing import absltest, parameterized
 from jax._src import test_util as jtu
 from jax.sharding import Mesh
 
-from tpu_inference.kernels.fused_moe.v1.kernel import (
-    fused_ep_moe, get_dtype_packing, ref_moe, sub_channel_quantize_minor_dim)
+from tpu_inference.kernels.fused_moe.v1.kernel import (fused_ep_moe,
+                                                       get_dtype_packing,
+                                                       ref_moe)
 
 jax.config.parse_flags_with_absl()
 
@@ -172,16 +173,14 @@ class MoEKernelTest(jtu.JaxTestCase):
                 subc_quant_w2_sz = 256
             w1, w1_scale = sub_channel_quantize(w1, w_dtype, subc_quant_w1_sz)
             w2, w2_scale = sub_channel_quantize(w2, w_dtype, subc_quant_w2_sz)
-        a_scale = None
         if a_dtype is not None:
             if t_subc_quant_wsz is None:
                 t_subc_quant_wsz = 256
-            a, a_scale = sub_channel_quantize_minor_dim(
-                a, a_dtype, t_subc_quant_wsz)
 
         actual = fused_ep_moe(
             mesh=self.mesh,
             tokens=a,
+            token_dtype=a_dtype,
             w1=w1,
             w2=w2,
             gating_output=gating_output,
@@ -192,7 +191,6 @@ class MoEKernelTest(jtu.JaxTestCase):
             a_subc_quant_wsz=a_subc_quant_wsz,
             subc_quant_w1_sz=subc_quant_w1_sz,
             subc_quant_w2_sz=subc_quant_w2_sz,
-            tokens_scale=a_scale,
             w1_scale=w1_scale,
             w2_scale=w2_scale,
             b1=b1,
@@ -216,11 +214,11 @@ class MoEKernelTest(jtu.JaxTestCase):
             b2=b2,
             renormalize_topk_logits=renormalize_topk_logits,
             act_fn=act_fn,
+            token_dtype=a_dtype,
             t_subc_quant_wsz=t_subc_quant_wsz,
             a_subc_quant_wsz=a_subc_quant_wsz,
             subc_quant_w1_sz=subc_quant_w1_sz,
             subc_quant_w2_sz=subc_quant_w2_sz,
-            tokens_scale=a_scale,
             w1_scale=w1_scale,
             w2_scale=w2_scale,
         )
